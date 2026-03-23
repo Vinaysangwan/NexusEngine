@@ -1,9 +1,8 @@
 #include "Application.h"
 
-#include <stdio.h>
-
 namespace Nexus
 {
+
 	Application::Application()
 	{
 
@@ -16,10 +15,8 @@ namespace Nexus
 
 	void Application::Run()
 	{
-		while (true)
-		{
-			printf("Nexus is Running\n");
-		}
+		while (true);
 	}
+
 }
 
