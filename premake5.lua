@@ -20,6 +20,9 @@ project "NexusEngine"
 	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
 	buildoptions "/utf-8"
 
+	pchheader "nxpch.h"
+	pchsource "%{prj.name}/src/nxpch.cpp"
+
 	files
 	{
 		"%{prj.name}/src/**.h",

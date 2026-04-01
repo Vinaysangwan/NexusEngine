@@ -2,9 +2,6 @@
 
 #include "Nexus/Core.h"
 
-#include <string>
-#include <functional>
-
 namespace Nexus
 {
 

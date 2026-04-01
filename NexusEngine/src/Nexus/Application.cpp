@@ -1,3 +1,4 @@
+#include "nxpch.h"
 #include "Application.h"
 
 namespace Nexus
