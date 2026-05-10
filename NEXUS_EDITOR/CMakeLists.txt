@@ -23,4 +23,6 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
   GLAD
   NEXUS_UTILITIES
   NEXUS_WINDOW
+
+  glm::glm
 )

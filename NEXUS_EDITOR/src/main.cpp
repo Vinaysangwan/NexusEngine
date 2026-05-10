@@ -6,8 +6,80 @@
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
-GLuint LoadTexture(const std::string& filePath, GLint wrap = GL_CLAMP_TO_EDGE, GLint filter = GL_NEAREST)
+class Camera2D
+{
+public:
+  Camera2D()
+    : Camera2D(640, 480)
+  { }
+
+  Camera2D(int width, int height)
+    : _Width{width}, _Height{height}, 
+      _Zoom(1.0f), 
+      _Position{glm::vec2(0.0f)},
+      _CameraMatrix{1.0f}, _OrthoProjection{1.0f},
+      _NeedsUpdate{true}
+  {
+    // Init Ortho Projection
+    _OrthoProjection = glm::ortho(
+      0.0f,                             // Left 
+      static_cast<float>(_Width),       // Right 
+      static_cast<float>(_Height),      // Bottom
+      0.0f,                             // Top 
+      -1.0f,                            // Near
+      1.0f                              // Far
+    );
+  }
+  
+  ~Camera2D()
+  { }
+
+  inline glm::mat4 &GetCameraMatrix() { return _CameraMatrix; }
+
+  inline void SetZoom(float zoom) 
+  {
+    _Zoom = zoom; 
+    _NeedsUpdate = true;
+  }
+
+  void Update()
+  {
+    if (_NeedsUpdate)
+    {
+      // translate
+      glm::vec3 translate{-_Position.x, -_Position.y, 0.0f};
+      _CameraMatrix = glm::translate(_OrthoProjection, translate);
+
+      // scale
+      glm::vec3 scale{_Zoom, _Zoom, 0.0f};
+      _CameraMatrix *= glm::scale(glm::mat4(1.0f), scale);
+
+      _NeedsUpdate = false;
+    }
+  }
+
+private:
+  int _Width, _Height;
+  float _Zoom;
+
+  glm::vec2 _Position;
+  glm::mat4 _CameraMatrix, _OrthoProjection;
+
+  bool _NeedsUpdate;
+};
+
+struct UVs
+{
+  float x, y, width, height;
+
+  UVs() : x{0}, y{0}, width{0}, height{0} { }
+  UVs(float x, float y, float width, float height) { }
+};
+
+GLuint LoadTexture(const std::string& filePath, int &width, int &height, GLint wrap = GL_CLAMP_TO_EDGE, GLint filter = GL_NEAREST)
 {
   std::string texturePath = std::string(ASSET_PATH) + "textures/" + filePath;
   
@@ -15,7 +87,7 @@ GLuint LoadTexture(const std::string& filePath, GLint wrap = GL_CLAMP_TO_EDGE, G
   glGenTextures(1, &textureID);
   glBindTexture(GL_TEXTURE_2D, textureID);
 
-  int width, height, nChannels;
+  int nChannels;
   unsigned char *data = stbi_load(texturePath.c_str(), &width, &height, &nChannels, 4);
   if(!data)
   {
@@ -88,18 +160,26 @@ int main()
   SDL_GL_MakeCurrent(window.GetWindow().get(), window.GetGLContext());
   SDL_GL_SetSwapInterval(1);
 
-  // Initialize Glad
+  // Init Glad
   if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress))
   {
     std::cout<<"Failed to Init GLAD"<<std::endl;
     return -1;
   }
 
+  // Enable Alpha Blend
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
   // Display GPU Info
   std::cout << "Vender:   " << glGetString(GL_VENDOR) << '\n';
   std::cout << "Renderer: " << glGetString(GL_RENDERER) << '\n';
   std::cout << "Version:  " << glGetString(GL_VERSION) << '\n';
   std::cout << "GLSL:     " << glGetString(GL_SHADING_LANGUAGE_VERSION) << '\n';
+
+  // Init camera
+  Camera2D camera;
+  camera.SetZoom(2.0f);
 
   const char *vertCode = 
   "#version 440 core\n"
@@ -108,8 +188,11 @@ int main()
 
   "layout(location = 0) out vec2 outTexCoords;\n"
 
+  "uniform mat4 uProjectionMatrix;\n"
+  // "uniform mat4 uCameraMatrix;\n"
+
   "void main(){\n"
-  " gl_Position = vec4(inPos, 1.0f);\n"
+  " gl_Position = uProjectionMatrix * vec4(inPos, 1.0f);\n"
   " outTexCoords = inTexCoords;\n"
   "}";
 
@@ -165,20 +248,40 @@ int main()
   glDeleteShader(vertID);
   glDeleteShader(fragID);
 
+  // texture id
+  int textureWidth = 0;
+  int textureHeight = 0;
+  GLuint textureID = LoadTexture("world_tileset.png", textureWidth, textureHeight);
+
+  UVs uvs;
+
+  auto generateUVs = [&](float gridX, float gridY, float spriteSizeX, float spriteSizeY)
+  {
+    uvs.width = spriteSizeX / static_cast<float>(textureWidth);
+    uvs.height = spriteSizeY / static_cast<float>(textureHeight);
+
+    uvs.x = gridX * uvs.width;
+    uvs.y = gridY * uvs.height;
+  };
+
+  generateUVs(11, 8, 16, 16);
+
   // vertices
+  glm::vec2 quadPos{50.0f};
+  glm::vec2 quadSize{32.0f};
   float vertices[] = {
-    -0.5f,  0.5f,  0.0f,
-    -0.5f, -0.5f,  0.0f,
-     0.5f, -0.5f,  0.0f,
-     0.5f,  0.5f,  0.0f,
+    quadPos.x - quadSize.x / 2, quadPos.y - quadSize.y / 2, 0.0f,
+    quadPos.x - quadSize.x / 2, quadPos.y + quadSize.y / 2, 0.0f,
+    quadPos.x + quadSize.x / 2, quadPos.y + quadSize.y / 2, 0.0f,
+    quadPos.x + quadSize.x / 2, quadPos.y - quadSize.y / 2, 0.0f,
   };
 
   // texture coords
   float texCoords[] = {
-    0.0f, 0.0f,
-    0.0f, 1.0f,
-    1.0f, 1.0f,
-    1.0f, 0.0f,
+    uvs.x, uvs.y,
+    uvs.x, uvs.y + uvs.height,
+    uvs.x + uvs.width, uvs.y + uvs.height,
+    uvs.x + uvs.width, uvs.y,
   };
   
   // indices
@@ -215,9 +318,6 @@ int main()
   glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
   glEnableVertexAttribArray(1);
 
-  // texture id
-  GLuint textureID = LoadTexture("download.jpg");
-
   glBindVertexArray(0);
 
   // game loop
@@ -250,11 +350,18 @@ int main()
       window.GetWidth(), window.GetHeight()
     );
 
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    camera.Update();
+
+    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
     glUseProgram(programID);
     glBindVertexArray(vao);
+
+    auto projectionMatrix = camera.GetCameraMatrix();
+
+    GLint location = glGetUniformLocation(programID, "uProjectionMatrix");
+    glUniformMatrix4fv(location, 1, GL_FALSE, &projectionMatrix[0][0]);
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, textureID);
