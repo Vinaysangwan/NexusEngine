@@ -2,12 +2,18 @@
 #include <SDL3/SDL.h>
 #include <glad/glad.h>
 #include <Windowing/Window.h>
-#include <iostream>
+#include <Rendering/Essentials/ShaderLoader.h> 
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
+#include <iostream>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+
+std::string AssetPath(const std::string& path)
+{
+  return std::string(ASSET_PATH) + path;
+}
 
 class Camera2D
 {
@@ -81,7 +87,7 @@ struct UVs
 
 GLuint LoadTexture(const std::string& filePath, int &width, int &height, GLint wrap = GL_CLAMP_TO_EDGE, GLint filter = GL_NEAREST)
 {
-  std::string texturePath = std::string(ASSET_PATH) + "textures/" + filePath;
+  std::string texturePath = AssetPath("textures/" + filePath);
   
   GLuint textureID;
   glGenTextures(1, &textureID);
@@ -181,72 +187,11 @@ int main()
   Camera2D camera;
   camera.SetZoom(2.0f);
 
-  const char *vertCode = 
-  "#version 440 core\n"
-  "layout(location = 0) in vec3 inPos;\n"
-  "layout(location = 1) in vec2 inTexCoords;\n"
-
-  "layout(location = 0) out vec2 outTexCoords;\n"
-
-  "uniform mat4 uProjectionMatrix;\n"
-  // "uniform mat4 uCameraMatrix;\n"
-
-  "void main(){\n"
-  " gl_Position = uProjectionMatrix * vec4(inPos, 1.0f);\n"
-  " outTexCoords = inTexCoords;\n"
-  "}";
-
-  const char *fragCode = 
-  "#version 440 core\n"
-  "layout(location = 0) in vec2 inTexCoords;\n"
-  "layout(location = 0) out vec4 outColor;\n"
-  "uniform sampler2D uTextureSampler;\n"
-  "void main(){\n"
-  " vec4 textureColor = texture(uTextureSampler, inTexCoords);\n"
-  " outColor = textureColor;\n"
-  "}";
-
-  GLuint vertID = glCreateShader(GL_VERTEX_SHADER);
-  glShaderSource(vertID, 1, &vertCode, nullptr);
-  glCompileShader(vertID);
-  int success;
-  glGetShaderiv(vertID, GL_COMPILE_STATUS, &success);
-  if (success == GL_FALSE)
-  {
-    char infoLog[1024] = {0};
-    glGetShaderInfoLog(vertID, 1024, nullptr, infoLog);
-    std::cout<<"Failed to Compile VertexShader: "<<infoLog<<std::endl;
-    return -1;
-  }
-
-  GLuint fragID = glCreateShader(GL_FRAGMENT_SHADER);
-  glShaderSource(fragID, 1, &fragCode, nullptr);
-  glCompileShader(fragID);
-  glGetShaderiv(fragID, GL_COMPILE_STATUS, &success);
-  if (success == GL_FALSE)
-  {
-    char infoLog[1024] = {0};
-    glGetShaderInfoLog(fragID, 1024, nullptr, infoLog);
-    std::cout<<"Failed to Compile FragmentShader: "<<infoLog<<std::endl;
-    return -1;
-  }
-
-  GLuint programID = glCreateProgram();
-  glAttachShader(programID, vertID);
-  glAttachShader(programID, fragID);
-  glLinkProgram(programID);
-  glGetProgramiv(programID, GL_LINK_STATUS, &success);
-  if (success == GL_FALSE)
-  {
-    char infoLog[1024] = {0};
-    glGetProgramInfoLog(programID, 1024, nullptr, infoLog);
-    std::cout<<"Failed to Link Program: "<<infoLog<<std::endl;
-    return -1;
-  }
-  glDetachShader(programID, vertID);
-  glDetachShader(programID, fragID);
-  glDeleteShader(vertID);
-  glDeleteShader(fragID);
+  // Init Shader
+  std::unique_ptr<NEXUS_RENDERING::Shader> shader = NEXUS_RENDERING::ShaderLoader::Create(
+    AssetPath("shaders/quad.vert"),
+    AssetPath("shaders/quad.frag")
+  );
 
   // texture id
   int textureWidth = 0;
@@ -345,6 +290,7 @@ int main()
       }
     }
 
+    // Update
     glViewport(
       0, 0,
       window.GetWidth(), window.GetHeight()
@@ -352,16 +298,15 @@ int main()
 
     camera.Update();
 
+    // Render
     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    glUseProgram(programID);
+    shader->Enable();
     glBindVertexArray(vao);
 
     auto projectionMatrix = camera.GetCameraMatrix();
-
-    GLint location = glGetUniformLocation(programID, "uProjectionMatrix");
-    glUniformMatrix4fv(location, 1, GL_FALSE, &projectionMatrix[0][0]);
+    shader->SetUniformMat4("uProjection", projectionMatrix);
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, textureID);
@@ -369,14 +314,13 @@ int main()
     glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(indices[0]), GL_UNSIGNED_INT, 0);
     
     glBindVertexArray(0);
-    glUseProgram(0);
+    shader->Disable();
 
     SDL_GL_SwapWindow(window.GetWindow().get());
   }
 
   glDeleteVertexArrays(1, &vao);
   glDeleteBuffers(1, &ebo);
-  glDeleteProgram(programID);
 
   std::cout<<"Closing"<<std::endl;
 }
