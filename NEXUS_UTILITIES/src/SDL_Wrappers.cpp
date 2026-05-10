@@ -1,5 +1,6 @@
-#include "pch.h"
 #include "NexusUtilities/SDL_Wrappers.h"
+
+#include <iostream>
 
 namespace NEXUS_UTIL
 {

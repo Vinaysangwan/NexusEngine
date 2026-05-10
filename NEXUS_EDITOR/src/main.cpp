@@ -1,5 +1,8 @@
 #define SDL_MAIN_HANDLED 1
-#include "pch.h"
+#include <SDL3/SDL.h>
+#include <glad/glad.h>
+#include <Windowing/Window.h>
+#include <iostream>
 
 int main()
 {
@@ -35,7 +38,8 @@ int main()
   SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1);
   
   // Init Window
-  NEXUS_WINDOWING::Window window("Test Window", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 640, 480, true, SDL_WINDOW_OPENGL);
+  NEXUS_WINDOWING::Window window("Test Window", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 640, 480,
+    true, SDL_WINDOW_OPENGL);
   if (!window.GetWindow())
   {
     std::cout<<"Failed to Create Window!"<<std::endl;
@@ -60,10 +64,24 @@ int main()
     return -1;
   }
 
-  std::cout << "Vendor:   " << glGetString(GL_VENDOR) << '\n';
+  // Display GPU Info
+  std::cout << "Vender:   " << glGetString(GL_VENDOR) << '\n';
   std::cout << "Renderer: " << glGetString(GL_RENDERER) << '\n';
   std::cout << "Version:  " << glGetString(GL_VERSION) << '\n';
   std::cout << "GLSL:     " << glGetString(GL_SHADING_LANGUAGE_VERSION) << '\n';
+
+  // vertices
+  float vertices[] = {
+    -0.5f,  0.5f,  0.0f,
+    -0.5f, -0.5f,  0.0f,
+     0.5f,  0.5f,  0.0f,
+
+     0.5f,  0.5f,  0.0f,
+    -0.5f, -0.5f,  0.0f,
+     0.5f, -0.5f,  0.0f
+  };
+
+
 
   // game loop
   bool running = true;
@@ -95,7 +113,7 @@ int main()
       window.GetWidth(), window.GetHeight()
     );
 
-    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
     SDL_GL_SwapWindow(window.GetWindow().get());

@@ -12,4 +12,4 @@ compile:
 	cmake --build build
 
 run:
-	./build/NEXUS_EDITOR/NEXUS_EDITOR.exe	
+	./build/NEXUS_EDITOR/NEXUS_EDITOR.exe

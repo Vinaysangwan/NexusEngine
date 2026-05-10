@@ -1,13 +1,18 @@
 project(NEXUS_EDITOR)
 
-add_executable(${PROJECT_NAME})
+file(GLOB_RECURSE SRC_FILES 
+  src/**.cpp
+)
 
-target_precompile_headers(${PROJECT_NAME} PRIVATE include/pch.h)
+file(GLOB_RECURSE HEADER_FILES 
+  include/**.h
+)
 
-add_subdirectory(src)
+add_executable(${PROJECT_NAME} ${SRC_FILES} ${HEADER_FILES})
 
 target_include_directories(${PROJECT_NAME} PUBLIC 
   ${PROJECT_SOURCE_DIR}/include
+  ${CMAKE_SOURCE_DIR}/vendor/stb
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE

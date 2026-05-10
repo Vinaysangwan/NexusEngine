@@ -1,5 +1,6 @@
-#include "pch.h"
 #include "Windowing/Window.h"
+
+#include <iostream>
 
 namespace NEXUS_WINDOWING
 {
