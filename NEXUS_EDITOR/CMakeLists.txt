@@ -14,16 +14,17 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
   ASSET_PATH="${CMAKE_SOURCE_DIR}/assets/"
 )
 
-target_include_directories(${PROJECT_NAME} PUBLIC 
+target_include_directories(${PROJECT_NAME} PRIVATE 
   ${PROJECT_SOURCE_DIR}/include
   ${CMAKE_SOURCE_DIR}/vendor/stb
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
   GLAD
+  NEXUS_LOGGER
+  NEXUS_RENDERING
   NEXUS_UTILITIES
   NEXUS_WINDOW
-  NEXUS_RENDERING
 
   glm::glm
 )

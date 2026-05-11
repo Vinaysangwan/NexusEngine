@@ -3,6 +3,7 @@
 #include <glad/glad.h>
 #include <Windowing/Window.h>
 #include <Rendering/Essentials/ShaderLoader.h> 
+#include <Logger/Logger.h>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
@@ -97,7 +98,7 @@ GLuint LoadTexture(const std::string& filePath, int &width, int &height, GLint w
   unsigned char *data = stbi_load(texturePath.c_str(), &width, &height, &nChannels, 4);
   if(!data)
   {
-    std::cout<<"Failed to Open the texture: "<<texturePath<<std::endl;
+    NEXUS_ERROR("Failed to Open the texture: {}", texturePath);
   }
 
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrap);
@@ -115,11 +116,14 @@ GLuint LoadTexture(const std::string& filePath, int &width, int &height, GLint w
 
 int main()
 {
+  // init logger
+  NEXUS_INIT_LOGS(true, true);
+  
   // init SDL
   if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD))
   {
     std::string error = SDL_GetError();
-    std::cout<<"Failed to Init SDL: "<<error<<std::endl;
+    NEXUS_ERROR("Failed to Init SDL: {}", error);
     return -1;
   }
 
@@ -127,7 +131,7 @@ int main()
   if (!SDL_GL_LoadLibrary(NULL) != 0)
   {
     std::string error = SDL_GetError();
-    std::cout<<"Failed to Open OpenGL Library: "<<error<<std::endl;
+    NEXUS_ERROR("Failed to Open OpenGL Library: {}", error);
     return -1;
   }
 
@@ -151,7 +155,7 @@ int main()
     true, SDL_WINDOW_OPENGL);
   if (!window.GetWindow())
   {
-    std::cout<<"Failed to Create Window!"<<std::endl;
+    NEXUS_ERROR("Failed to Create Window!");
     return -1;
   }
 
@@ -160,7 +164,7 @@ int main()
   if (!window.GetGLContext())
   {
     std::string error = SDL_GetError();
-    std::cout<<"Failed to Create OpenGL Context: "<<error<<std::endl;
+    NEXUS_ERROR("Failed to Create OpenGL Content: {}", error);
     return -1;
   }
   SDL_GL_MakeCurrent(window.GetWindow().get(), window.GetGLContext());
@@ -169,7 +173,7 @@ int main()
   // Init Glad
   if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress))
   {
-    std::cout<<"Failed to Init GLAD"<<std::endl;
+    NEXUS_ERROR("Failed to Init GLAD");
     return -1;
   }
 
@@ -178,10 +182,18 @@ int main()
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
   // Display GPU Info
-  std::cout << "Vender:   " << glGetString(GL_VENDOR) << '\n';
-  std::cout << "Renderer: " << glGetString(GL_RENDERER) << '\n';
-  std::cout << "Version:  " << glGetString(GL_VERSION) << '\n';
-  std::cout << "GLSL:     " << glGetString(GL_SHADING_LANGUAGE_VERSION) << '\n';
+  NEXUS_LOG(
+    R"(GPU INFO:
+    Vendor: {}
+    Renderer: {}
+    OpenGL: {}
+    GLSL: {})",
+
+    reinterpret_cast<const char*>(glGetString(GL_VENDOR)),
+    reinterpret_cast<const char*>(glGetString(GL_RENDERER)),
+    reinterpret_cast<const char*>(glGetString(GL_VERSION)),
+    reinterpret_cast<const char*>(glGetString(GL_SHADING_LANGUAGE_VERSION))
+  );  
 
   // Init camera
   Camera2D camera;
@@ -322,5 +334,5 @@ int main()
   glDeleteVertexArrays(1, &vao);
   glDeleteBuffers(1, &ebo);
 
-  std::cout<<"Closing"<<std::endl;
+  NEXUS_LOG("Closing");
 }

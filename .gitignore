@@ -1,4 +1,7 @@
 # Folders
 build/
+.vscode/
 
 # Files
+*.exe
+*.pdb
