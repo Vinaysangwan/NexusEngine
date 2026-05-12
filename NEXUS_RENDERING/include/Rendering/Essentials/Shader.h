@@ -13,8 +13,8 @@ namespace NEXUS_RENDERING
     Shader(GLuint programID, const std::string &vertFilePath, const std::string &fragFilePath);
     ~Shader();
 
-    inline void Enable() const { glUseProgram(_ProgramID); }
-    inline void Disable() const { glUseProgram(0); }
+    void Enable() const;
+    void Disable() const;
 
     inline const GLuint GetProgramID() const { return _ProgramID; }
 

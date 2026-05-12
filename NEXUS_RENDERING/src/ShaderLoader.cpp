@@ -1,4 +1,5 @@
 #include "Rendering/Essentials/ShaderLoader.h"
+#include <Logger/Logger.h>
 
 #include <iostream>
 #include <fstream>
@@ -36,7 +37,7 @@ namespace NEXUS_RENDERING
     {
       char infoLog[1024] = {0};
       glGetProgramInfoLog(programID, 1024, nullptr, infoLog);
-      std::cout<<"Failed to link Program["<<programID<<"]"<<std::endl;
+      NEXUS_ERROR("Failed to Link program[{}]", programID);
 
       glDetachShader(programID, vertID);
       glDetachShader(programID, fragID);
@@ -59,7 +60,7 @@ namespace NEXUS_RENDERING
     std::ifstream file(filePath);
     if (file.fail())
     {
-      std::cout<<"Failed to Open the Shader file: "<<filePath<<std::endl;
+      NEXUS_ERROR("Failed to Open the Shader File: {}", filePath);
       return 0;
     }
 
@@ -84,7 +85,7 @@ namespace NEXUS_RENDERING
       char infoLog[1024] = {0};
       glGetShaderInfoLog(shaderID, 1024, nullptr, infoLog);
       const char* shaderName = type == GL_VERTEX_SHADER ? "Vertex Shader" : "Fragment Shader";
-      std::cout<<"Failed to Compile "<<shaderName<<": "<<infoLog<<std::endl;
+      NEXUS_ERROR("Failed to Compile {}: {}", shaderName, infoLog);
 
       glDeleteShader(shaderID);
       return 0;

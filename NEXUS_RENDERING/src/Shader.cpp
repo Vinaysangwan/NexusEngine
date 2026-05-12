@@ -1,4 +1,5 @@
 #include "Rendering/Essentials/Shader.h"
+#include <Logger/Logger.h>
 
 #include <iostream>
 
@@ -12,6 +13,16 @@ namespace NEXUS_RENDERING
   Shader::~Shader()
   {
     glDeleteProgram(_ProgramID);
+  }
+
+  void Shader::Enable() const
+  {
+    glUseProgram(_ProgramID);
+  }
+
+  void Shader::Disable() const
+  {
+    glUseProgram(0);
   }
 
   void Shader::SetUniformInt(const std::string &name, int value)
@@ -35,7 +46,7 @@ namespace NEXUS_RENDERING
     GLint location = glGetUniformLocation(_ProgramID, name.c_str());
     if (location < 0)
     {
-      std::cout<<"For Shader Program["<<_ProgramID<<"] => Failed to Get Uniform Location: "<<name<<std::endl;
+      NEXUS_ERROR("For Shader Program[{}] => Failed to Get Uniform Location", _ProgramID, name);
       return -1;
     }
 

@@ -2,11 +2,10 @@
 #include <SDL3/SDL.h>
 #include <glad/glad.h>
 #include <Windowing/Window.h>
-#include <Rendering/Essentials/ShaderLoader.h> 
 #include <Logger/Logger.h>
+#include <Rendering/Essentials/ShaderLoader.h> 
+#include <Rendering/Essentials/TextureLoader.h> 
 
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
 #include <iostream>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -85,34 +84,6 @@ struct UVs
   UVs() : x{0}, y{0}, width{0}, height{0} { }
   UVs(float x, float y, float width, float height) { }
 };
-
-GLuint LoadTexture(const std::string& filePath, int &width, int &height, GLint wrap = GL_CLAMP_TO_EDGE, GLint filter = GL_NEAREST)
-{
-  std::string texturePath = AssetPath("textures/" + filePath);
-  
-  GLuint textureID;
-  glGenTextures(1, &textureID);
-  glBindTexture(GL_TEXTURE_2D, textureID);
-
-  int nChannels;
-  unsigned char *data = stbi_load(texturePath.c_str(), &width, &height, &nChannels, 4);
-  if(!data)
-  {
-    NEXUS_ERROR("Failed to Open the texture: {}", texturePath);
-  }
-
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrap);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrap);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
-
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-
-  stbi_image_free(data);
-  glBindTexture(GL_TEXTURE_2D, 0);
-  
-  return textureID;
-}
 
 int main()
 {
@@ -205,22 +176,30 @@ int main()
     AssetPath("shaders/quad.frag")
   );
 
-  // texture id
-  int textureWidth = 0;
-  int textureHeight = 0;
-  GLuint textureID = LoadTexture("world_tileset.png", textureWidth, textureHeight);
+  // init texture
+  std::unique_ptr<NEXUS_RENDERING::Texture> texture = NEXUS_RENDERING::TextureLoader::Create(
+    NEXUS_RENDERING::Texture::TextureType::NEAREST,
+    AssetPath("textures/world_tileset.png")
+  );
+  NEXUS_LOG(
+    R"(Texture Loaded Successfully:
+    ID: {},
+    Width: {},
+    Height: {}
+    )",
+    texture->GetID(), texture->GetWidth(), texture->GetHeight()
+  );
 
+  // Generating UVs
   UVs uvs;
-
   auto generateUVs = [&](float gridX, float gridY, float spriteSizeX, float spriteSizeY)
   {
-    uvs.width = spriteSizeX / static_cast<float>(textureWidth);
-    uvs.height = spriteSizeY / static_cast<float>(textureHeight);
+    uvs.width = spriteSizeX / static_cast<float>(texture->GetWidth());
+    uvs.height = spriteSizeY / static_cast<float>(texture->GetHeight());
 
     uvs.x = gridX * uvs.width;
     uvs.y = gridY * uvs.height;
   };
-
   generateUVs(11, 8, 16, 16);
 
   // vertices
@@ -321,10 +300,11 @@ int main()
     shader->SetUniformMat4("uProjection", projectionMatrix);
 
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, textureID);
+    texture->Bind();
 
     glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(indices[0]), GL_UNSIGNED_INT, 0);
     
+    texture->unBind();
     glBindVertexArray(0);
     shader->Disable();
 
