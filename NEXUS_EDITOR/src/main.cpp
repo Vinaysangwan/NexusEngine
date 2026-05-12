@@ -5,9 +5,10 @@
 #include <Logger/Logger.h>
 #include <Rendering/Essentials/ShaderLoader.h> 
 #include <Rendering/Essentials/TextureLoader.h> 
+#include <Rendering/Essentials/Vertex.h> 
 #include <Rendering/Core/Camera2D.h>
 
-#include <iostream>
+#include <vector>
 
 std::string AssetPath(const std::string& path)
 {
@@ -139,15 +140,32 @@ int main()
   };
   generateUVs(11, 8, 16, 16);
 
-  // vertices
+  // init vertices
   glm::vec2 quadPos{50.0f};
   glm::vec2 quadSize{32.0f};
-  float vertices[] = {
-    quadPos.x - quadSize.x / 2, quadPos.y - quadSize.y / 2, 0.0f,
-    quadPos.x - quadSize.x / 2, quadPos.y + quadSize.y / 2, 0.0f,
-    quadPos.x + quadSize.x / 2, quadPos.y + quadSize.y / 2, 0.0f,
-    quadPos.x + quadSize.x / 2, quadPos.y - quadSize.y / 2, 0.0f,
+
+  std::vector<NEXUS_RENDERING::Vertex> vertices;
+  NEXUS_RENDERING::Vertex vTL = {
+    .position = quadPos,
+    .uvs = {uvs.x, uvs.y}
   };
+  NEXUS_RENDERING::Vertex vTR = {
+    .position = quadPos + glm::vec2{quadSize.x, 0},
+    .uvs = {uvs.x + uvs.width, uvs.y}
+  };
+  NEXUS_RENDERING::Vertex vBL = {
+    .position = quadPos + glm::vec2{0, quadSize.y},
+    .uvs = {uvs.x, uvs.y + uvs.height}
+  };
+  NEXUS_RENDERING::Vertex vBR = {
+    .position = quadPos + quadSize,
+    .uvs = {uvs.x + uvs.width, uvs.y + uvs.height}
+  };
+
+  vertices.push_back(vTL);
+  vertices.push_back(vTR);
+  vertices.push_back(vBL);
+  vertices.push_back(vBR);
 
   // texture coords
   float texCoords[] = {
@@ -159,8 +177,8 @@ int main()
   
   // indices
   unsigned int indices[] = {
-    0, 1, 3,
-    3, 1, 2
+    0, 1, 2,
+    1, 2, 3
   };
 
   // vao
@@ -178,18 +196,29 @@ int main()
   GLuint vbo;
   glGenBuffers(1, &vbo);
   glBindBuffer(GL_ARRAY_BUFFER, vbo);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(NEXUS_RENDERING::Vertex), vertices.data(), GL_STATIC_DRAW);
 
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+  // vertex attrib pointers
+  // inPos
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 
+    sizeof(NEXUS_RENDERING::Vertex),
+    (void*)offsetof(NEXUS_RENDERING::Vertex, position)
+  );
   glEnableVertexAttribArray(0);
 
-  GLuint tex_vbo;
-  glGenBuffers(1, &tex_vbo);
-  glBindBuffer(GL_ARRAY_BUFFER, tex_vbo);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(texCoords), texCoords, GL_STATIC_DRAW);
-
-  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
+  // inUVs
+  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 
+    sizeof(NEXUS_RENDERING::Vertex),
+    (void*)offsetof(NEXUS_RENDERING::Vertex, uvs)
+  );
   glEnableVertexAttribArray(1);
+
+  // inColor
+  glVertexAttribPointer(2, 4, GL_UNSIGNED_BYTE, GL_TRUE, 
+    sizeof(NEXUS_RENDERING::Vertex),
+    (void*)offsetof(NEXUS_RENDERING::Vertex, color)
+  );
+  glEnableVertexAttribArray(2);
 
   glBindVertexArray(0);
 
@@ -233,7 +262,8 @@ int main()
     shader->Enable();
     glBindVertexArray(vao);
 
-    auto projectionMatrix = camera.GetCameraMatrix();
+    // Set Projection Matrix
+    glm::mat4 projectionMatrix = camera.GetCameraMatrix();
     shader->SetUniformMat4("uProjection", projectionMatrix);
 
     glActiveTexture(GL_TEXTURE0);
