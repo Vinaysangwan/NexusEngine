@@ -28,14 +28,14 @@ namespace NEXUS_RESOURCES
     return true;
   }
 
-  const NEXUS_RENDERING::Texture &AssetManager::GetTexture(const std::string &textureName)
+  NEXUS_RENDERING::Texture &AssetManager::GetTexture(const std::string &textureName)
   {
     auto it = _MapTextures.find(textureName);
     if (it == _MapTextures.end())
     {
       NEXUS_ERROR("Failed to get texture[{}]: Doesn't exist", textureName);
 
-      NEXUS_RENDERING::Texture texture{};
+      static NEXUS_RENDERING::Texture texture{};
       return texture;
     }
 
@@ -61,14 +61,14 @@ namespace NEXUS_RESOURCES
     return true;
   }
 
-  const NEXUS_RENDERING::Shader &AssetManager::GetShader(const std::string &shaderName)
+  NEXUS_RENDERING::Shader &AssetManager::GetShader(const std::string &shaderName)
   {
     auto it = _MapShaders.find(shaderName);
     if (it == _MapShaders.end())
     {
       NEXUS_ERROR("Failed to get Shader[{}]: Doesn't Exist!", shaderName);
 
-      NEXUS_RENDERING::Shader shader{};
+      static NEXUS_RENDERING::Shader shader{};
       return shader; 
     }
 

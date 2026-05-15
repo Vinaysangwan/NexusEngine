@@ -53,7 +53,7 @@ namespace NEXUS_RENDERING
     GLint location = glGetUniformLocation(_ProgramID, name.c_str());
     if (location < 0)
     {
-      NEXUS_ERROR("For Shader Program[{}] => Failed to Get Uniform Location", _ProgramID, name);
+      NEXUS_ERROR("For Shader Program[{}] => Failed to Get Uniform Location[{}]", _ProgramID, name);
       return -1;
     }
 

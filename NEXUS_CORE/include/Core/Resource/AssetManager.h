@@ -16,10 +16,10 @@ namespace NEXUS_RESOURCES
     ~AssetManager() = default;
 
     bool AddTexture(const std::string& textureName, const std::string& texturePath, bool pixelArt = true);
-    const NEXUS_RENDERING::Texture& GetTexture(const std::string& textureName);
+    NEXUS_RENDERING::Texture& GetTexture(const std::string& textureName);
 
     bool AddShader(const std::string& shaderName, const std::string& vertPath, const std::string& fragPath);
-    const NEXUS_RENDERING::Shader& GetShader(const std::string& shaderName);
+    NEXUS_RENDERING::Shader& GetShader(const std::string& shaderName);
 
   private:
     std::unordered_map<std::string, std::shared_ptr<NEXUS_RENDERING::Texture>> _MapTextures{};
