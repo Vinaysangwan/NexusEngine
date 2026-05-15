@@ -3,7 +3,7 @@
 EXE = NEXUS_ENGINE
 CONFIG = Debug
 
-all: build compile run
+all: compile run
 
 build:
 	cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=$(CONFIG)

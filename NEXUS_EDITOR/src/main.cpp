@@ -1,4 +1,6 @@
 #define SDL_MAIN_HANDLED 1
+#define NOMINMAX
+
 #include <SDL3/SDL.h>
 #include <glad/glad.h>
 #include <Windowing/Window.h>
@@ -9,6 +11,7 @@
 #include <Rendering/Core/Camera2D.h>
 
 #include <vector>
+#include <entt.hpp>
 
 std::string AssetPath(const std::string& path)
 {
@@ -17,10 +20,36 @@ std::string AssetPath(const std::string& path)
 
 struct UVs
 {
-  float x, y, width, height;
+  float u{0.0f};
+  float v{0.0f};
+  float width{0.0f};
+  float height{0.0f};
+};
 
-  UVs() : x{0}, y{0}, width{0}, height{0} { }
-  UVs(float x, float y, float width, float height) { }
+struct TransformComponent
+{
+  glm::vec2 position{glm::vec2{0.0f}};
+  glm::vec2 scale{glm::vec2{1.0f}};
+  float rotation{0.0f};
+};
+
+struct SpriteComponent
+{
+  int startX{0}, startY{0};
+  float width{0.0f}, height{0.0f};
+
+  NEXUS_RENDERING::Color color{.r=255, .g=255, .b=255, .a=255};
+
+  UVs uvs{.u = 0.f, .v = 0.f, .width = 0.f, .height = 0.f};
+
+  void generate_uvs(int textureWidth, int textureHeight)
+  {
+    uvs.width = width / textureWidth;
+    uvs.height = height / textureHeight;
+
+    uvs.u = startX * uvs.width;
+    uvs.v = startY * uvs.height;
+  }
 };
 
 int main()
@@ -104,6 +133,14 @@ int main()
     reinterpret_cast<const char*>(glGetString(GL_SHADING_LANGUAGE_VERSION))
   );  
 
+  // Init registry
+  auto registry = std::make_unique<entt::registry>();
+  if(!registry)
+  {
+    NEXUS_ERROR("Failed to Create entity registry");
+    return -1;
+  }
+
   // Init camera
   NEXUS_RENDERING::Camera2D camera;
   camera.SetZoom(2.0f);
@@ -128,38 +165,45 @@ int main()
     texture->GetID(), texture->GetWidth(), texture->GetHeight()
   );
 
-  // Generating UVs
-  UVs uvs;
-  auto generateUVs = [&](float gridX, float gridY, float spriteSizeX, float spriteSizeY)
-  {
-    uvs.width = spriteSizeX / static_cast<float>(texture->GetWidth());
-    uvs.height = spriteSizeY / static_cast<float>(texture->GetHeight());
+  // init entity
+  auto ent1 = registry->create();
 
-    uvs.x = gridX * uvs.width;
-    uvs.y = gridY * uvs.height;
-  };
-  generateUVs(11, 8, 16, 16);
+  auto &transform = registry->emplace<TransformComponent>(ent1, TransformComponent{
+    .position = glm::vec2{50.0f},
+    .scale = glm::vec2{1.0f},
+    .rotation = 0.0f
+  });
+
+  auto &sprite = registry->emplace<SpriteComponent>(ent1, SpriteComponent{
+    .startX = 11,
+    .startY = 8,
+    .width = 16.0f,
+    .height = 16.0f,
+    .color = {.r = 255, .g = 255, .b = 255, .a = 255}
+  });
+  sprite.generate_uvs(texture->GetWidth(), texture->GetHeight());
 
   // init vertices
-  glm::vec2 quadPos{50.0f};
-  glm::vec2 quadSize{32.0f};
-
   std::vector<NEXUS_RENDERING::Vertex> vertices;
   NEXUS_RENDERING::Vertex vTL = {
-    .position = quadPos,
-    .uvs = {uvs.x, uvs.y}
+    .position = transform.position,
+    .uvs = {sprite.uvs.u, sprite.uvs.v},
+    .color = sprite.color
   };
   NEXUS_RENDERING::Vertex vTR = {
-    .position = quadPos + glm::vec2{quadSize.x, 0},
-    .uvs = {uvs.x + uvs.width, uvs.y}
+    .position = transform.position + glm::vec2{sprite.width, 0},
+    .uvs = {sprite.uvs.u + sprite.uvs.width, sprite.uvs.v},
+    .color = sprite.color
   };
   NEXUS_RENDERING::Vertex vBL = {
-    .position = quadPos + glm::vec2{0, quadSize.y},
-    .uvs = {uvs.x, uvs.y + uvs.height}
+    .position = transform.position + glm::vec2{0, sprite.height},
+    .uvs = {sprite.uvs.u, sprite.uvs.v + sprite.uvs.height},
+    .color = sprite.color
   };
   NEXUS_RENDERING::Vertex vBR = {
-    .position = quadPos + quadSize,
-    .uvs = {uvs.x + uvs.width, uvs.y + uvs.height}
+    .position = transform.position + glm::vec2{sprite.width, sprite.height},
+    .uvs = {sprite.uvs.u + sprite.uvs.width, sprite.uvs.v + sprite.uvs.height},
+    .color = sprite.color
   };
 
   vertices.push_back(vTL);
@@ -167,12 +211,12 @@ int main()
   vertices.push_back(vBL);
   vertices.push_back(vBR);
 
-  // texture coords
+  // Init texture coords
   float texCoords[] = {
-    uvs.x, uvs.y,
-    uvs.x, uvs.y + uvs.height,
-    uvs.x + uvs.width, uvs.y + uvs.height,
-    uvs.x + uvs.width, uvs.y,
+    sprite.uvs.u, sprite.uvs.v,
+    sprite.uvs.u, sprite.uvs.v + sprite.uvs.height,
+    sprite.uvs.u + sprite.uvs.width, sprite.uvs.v + sprite.uvs.height,
+    sprite.uvs.u + sprite.uvs.width, sprite.uvs.v,
   };
   
   // indices
@@ -221,6 +265,7 @@ int main()
   glEnableVertexAttribArray(2);
 
   glBindVertexArray(0);
+  glDeleteBuffers(1, &vbo);
 
   // game loop
   bool running = true;
@@ -248,10 +293,7 @@ int main()
     }
 
     // Update
-    glViewport(
-      0, 0,
-      window.GetWidth(), window.GetHeight()
-    );
+    glViewport(0, 0, window.GetWidth(), window.GetHeight());
 
     camera.Update();
 
@@ -262,13 +304,15 @@ int main()
     shader->Enable();
     glBindVertexArray(vao);
 
+    // bind texture
+    glActiveTexture(GL_TEXTURE0);
+    texture->Bind();
+
     // Set Projection Matrix
     glm::mat4 projectionMatrix = camera.GetCameraMatrix();
     shader->SetUniformMat4("uProjection", projectionMatrix);
 
-    glActiveTexture(GL_TEXTURE0);
-    texture->Bind();
-
+    // Draw elements
     glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(indices[0]), GL_UNSIGNED_INT, 0);
     
     texture->unBind();

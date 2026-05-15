@@ -17,6 +17,7 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
 target_include_directories(${PROJECT_NAME} PRIVATE 
   ${PROJECT_SOURCE_DIR}/include
   ${CMAKE_SOURCE_DIR}/vendor/stb
+  ${CMAKE_SOURCE_DIR}/vendor/entt
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
