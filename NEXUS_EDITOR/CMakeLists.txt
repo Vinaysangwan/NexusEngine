@@ -22,6 +22,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
   GLAD
+  NEXUS_CORE
   NEXUS_LOGGER
   NEXUS_RENDERING
   NEXUS_UTILITIES

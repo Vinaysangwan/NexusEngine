@@ -9,6 +9,10 @@
 #include <Rendering/Essentials/TextureLoader.h> 
 #include <Rendering/Essentials/Vertex.h> 
 #include <Rendering/Core/Camera2D.h>
+#include <Core/ECS/Entity.h>
+#include <Core/ECS/Components/TransformComponent.h>
+#include <Core/ECS/Components/SpriteComponent.h>
+#include <Core/ECS/Components/Identification.h>
 
 #include <vector>
 #include <entt.hpp>
@@ -17,40 +21,6 @@ std::string AssetPath(const std::string& path)
 {
   return std::string(ASSET_PATH) + path;
 }
-
-struct UVs
-{
-  float u{0.0f};
-  float v{0.0f};
-  float width{0.0f};
-  float height{0.0f};
-};
-
-struct TransformComponent
-{
-  glm::vec2 position{glm::vec2{0.0f}};
-  glm::vec2 scale{glm::vec2{1.0f}};
-  float rotation{0.0f};
-};
-
-struct SpriteComponent
-{
-  int startX{0}, startY{0};
-  float width{0.0f}, height{0.0f};
-
-  NEXUS_RENDERING::Color color{.r=255, .g=255, .b=255, .a=255};
-
-  UVs uvs{.u = 0.f, .v = 0.f, .width = 0.f, .height = 0.f};
-
-  void generate_uvs(int textureWidth, int textureHeight)
-  {
-    uvs.width = width / textureWidth;
-    uvs.height = height / textureHeight;
-
-    uvs.u = startX * uvs.width;
-    uvs.v = startY * uvs.height;
-  }
-};
 
 int main()
 {
@@ -133,14 +103,6 @@ int main()
     reinterpret_cast<const char*>(glGetString(GL_SHADING_LANGUAGE_VERSION))
   );  
 
-  // Init registry
-  auto registry = std::make_unique<entt::registry>();
-  if(!registry)
-  {
-    NEXUS_ERROR("Failed to Create entity registry");
-    return -1;
-  }
-
   // Init camera
   NEXUS_RENDERING::Camera2D camera;
   camera.SetZoom(2.0f);
@@ -165,16 +127,19 @@ int main()
     texture->GetID(), texture->GetWidth(), texture->GetHeight()
   );
 
-  // init entity
-  auto ent1 = registry->create();
+  // Init registry
+  auto registry = std::make_unique<NEXUS_CORE::ECS::Registry>();
 
-  auto &transform = registry->emplace<TransformComponent>(ent1, TransformComponent{
+  // init entity
+  NEXUS_CORE::ECS::Entity entity1{*registry, "Ent1", "Test"};
+
+  auto &transform = entity1.AddComponent<NEXUS_CORE::ECS::TransformComponent>(NEXUS_CORE::ECS::TransformComponent{
     .position = glm::vec2{50.0f},
     .scale = glm::vec2{1.0f},
     .rotation = 0.0f
   });
 
-  auto &sprite = registry->emplace<SpriteComponent>(ent1, SpriteComponent{
+  auto &sprite = entity1.AddComponent<NEXUS_CORE::ECS::SpriteComponent>(NEXUS_CORE::ECS::SpriteComponent{
     .startX = 11,
     .startY = 8,
     .width = 16.0f,
@@ -210,6 +175,9 @@ int main()
   vertices.push_back(vTR);
   vertices.push_back(vBL);
   vertices.push_back(vBR);
+
+  auto& id = entity1.GetComponent<NEXUS_CORE::ECS::Identification>();
+  NEXUS_LOG("Name: {}, Group: {}, id: {}", id.name, id.group, id.entity_id);
 
   // Init texture coords
   float texCoords[] = {

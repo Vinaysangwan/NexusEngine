@@ -35,8 +35,9 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(glm)
 
 add_subdirectory(GLAD)
-add_subdirectory(NEXUS_EDITOR)
+add_subdirectory(NEXUS_CORE)
 add_subdirectory(NEXUS_LOGGER)
+add_subdirectory(NEXUS_EDITOR)
 add_subdirectory(NEXUS_RENDERING)
 add_subdirectory(NEXUS_UTILITIES)
 add_subdirectory(NEXUS_WINDOW)
