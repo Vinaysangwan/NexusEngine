@@ -14,6 +14,7 @@
 #include <Core/ECS/Components/SpriteComponent.h>
 #include <Core/ECS/Components/Identification.h>
 #include <Core/Resource/AssetManager.h>
+#include <Core/Systems/ScriptingSystem.h>
 
 #include <vector>
 
@@ -160,13 +161,49 @@ namespace NEXUS_EDITOR
       return false;
     }
 
+    // init lua state
+    auto lua = std::make_shared<sol::state>();
+    if (!lua)
+    {
+      NEXUS_ERROR("Failed to Create Lua State");
+      return false;
+    }
+
+    lua->open_libraries(sol::lib::base, sol::lib::math, sol::lib::os, sol::lib::table, sol::lib::io, sol::lib::string);
+
+    if(!_Registry->AddToContext(lua))
+    {
+      NEXUS_ERROR("Failed to add lua state to Registry Context");
+      return false;
+    }
+
+    // init script system
+    auto scriptSystem = std::make_shared<NEXUS_CORE::Systems::ScriptingSystem>(*_Registry);
+    if (!scriptSystem)
+    {
+      NEXUS_ERROR("Failed to Create the Script System");
+      return false;
+    }
+
+    if (!scriptSystem->LoadMainScript(*lua))
+    {
+      NEXUS_ERROR("Failed to load the main lua script");
+      return false;
+    }
+
+    if(!_Registry->AddToContext(scriptSystem))
+    {
+      NEXUS_ERROR("Failed to add Script System to Registry Context");
+      return false;
+    }
+
     // Init camera
     auto camera = std::make_shared<NEXUS_RENDERING::Camera2D>();
     camera->SetZoom(2.0f);
 
     if (!_Registry->AddToContext(camera))
     {
-      NEXUS_ERROR("Faile to add Camera2D to Register Context!");
+      NEXUS_ERROR("Failed to add Camera2D to Register Context!");
       return false;
     }
 
@@ -338,6 +375,9 @@ namespace NEXUS_EDITOR
     }
 
     camera->Update();
+
+    auto& scriptSystem = _Registry->GetContext<std::shared_ptr<NEXUS_CORE::Systems::ScriptingSystem>>();
+    scriptSystem->Update();
   }
 
   void Application::Render()
@@ -375,6 +415,8 @@ namespace NEXUS_EDITOR
     shader.SetUniformMat4("uProjection", projectionMatrix);
 
     // Draw elements
+    auto& scriptSystem = _Registry->GetContext<std::shared_ptr<NEXUS_CORE::Systems::ScriptingSystem>>();
+    scriptSystem->Render();
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
     
     texture.unBind();

@@ -3,6 +3,17 @@
 
 namespace NEXUS_CORE::ECS
 {
+  Entity::Entity(Registry &registry, const entt::entity &entity)
+    : _Registry{registry}, _Entity(entity), _Name{""}, _Group{""}
+  {
+    if (HasComponent<Identification>())
+    {
+      auto id = GetComponent<Identification>();
+      _Name = id.name;
+      _Group = id.group;
+    }
+  }
+
   Entity::Entity(Registry &registry)
     : Entity(registry, "GameObject", "")
   {

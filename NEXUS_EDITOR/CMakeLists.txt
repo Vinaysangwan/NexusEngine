@@ -27,6 +27,4 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
   NEXUS_RENDERING
   NEXUS_UTILITIES
   NEXUS_WINDOW
-
-  glm::glm
 )
