@@ -11,7 +11,7 @@ file(GLOB_RECURSE HEADER_FILES
 add_executable(${PROJECT_NAME} ${SRC_FILES} ${HEADER_FILES})
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE
-  ASSET_PATH="${CMAKE_SOURCE_DIR}/assets/"
+  ASSET_PATH="${PROJECT_SOURCE_DIR}/assets/"
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE 
