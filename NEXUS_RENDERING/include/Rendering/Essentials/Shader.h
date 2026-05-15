@@ -10,6 +10,7 @@ namespace NEXUS_RENDERING
   class Shader
   {
   public:
+    Shader();
     Shader(GLuint programID, const std::string &vertFilePath, const std::string &fragFilePath);
     ~Shader();
 

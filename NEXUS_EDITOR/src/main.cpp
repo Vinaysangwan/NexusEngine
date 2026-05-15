@@ -13,6 +13,7 @@
 #include <Core/ECS/Components/TransformComponent.h>
 #include <Core/ECS/Components/SpriteComponent.h>
 #include <Core/ECS/Components/Identification.h>
+#include <Core/Resource/AssetManager.h>
 
 #include <vector>
 #include <entt.hpp>
@@ -103,32 +104,43 @@ int main()
     reinterpret_cast<const char*>(glGetString(GL_SHADING_LANGUAGE_VERSION))
   );  
 
-  // Init camera
-  NEXUS_RENDERING::Camera2D camera;
-  camera.SetZoom(2.0f);
+  // Init Asset Manager
+  auto assetManager = std::make_unique<NEXUS_RESOURCES::AssetManager>();
+  if (!assetManager)
+  {
+    NEXUS_ERROR("Failed to Create Asset Manager");
+    return -1;
+  }
 
   // Init Shader
-  std::unique_ptr<NEXUS_RENDERING::Shader> shader = NEXUS_RENDERING::ShaderLoader::Create(
-    AssetPath("shaders/quad.vert"),
-    AssetPath("shaders/quad.frag")
-  );
+  if (!assetManager->AddShader("Quad", AssetPath("shaders/quad.vert"), AssetPath("shaders/quad.frag")))
+  {
+    return -1;
+  }
+  auto shader = assetManager->GetShader("Quad");
 
   // init texture
-  std::unique_ptr<NEXUS_RENDERING::Texture> texture = NEXUS_RENDERING::TextureLoader::Create(
-    NEXUS_RENDERING::Texture::TextureType::NEAREST,
-    AssetPath("textures/world_tileset.png")
-  );
+  if (!assetManager->AddTexture("worldTileSet", AssetPath("textures/world_tileset.png")))
+  {
+    return -1;
+  }
+  auto texture = assetManager->GetTexture("worldTileSet");
+
   NEXUS_LOG(
     R"(Texture Loaded Successfully:
     ID: {},
     Width: {},
     Height: {}
     )",
-    texture->GetID(), texture->GetWidth(), texture->GetHeight()
+    texture.GetID(), texture.GetWidth(), texture.GetHeight()
   );
 
   // Init registry
   auto registry = std::make_unique<NEXUS_CORE::ECS::Registry>();
+
+  // Init camera
+  NEXUS_RENDERING::Camera2D camera;
+  camera.SetZoom(2.0f);
 
   // init entity
   NEXUS_CORE::ECS::Entity entity1{*registry, "Ent1", "Test"};
@@ -146,7 +158,7 @@ int main()
     .height = 16.0f,
     .color = {.r = 255, .g = 255, .b = 255, .a = 255}
   });
-  sprite.generate_uvs(texture->GetWidth(), texture->GetHeight());
+  sprite.generate_uvs(texture.GetWidth(), texture.GetHeight());
 
   // init vertices
   std::vector<NEXUS_RENDERING::Vertex> vertices;
@@ -269,23 +281,23 @@ int main()
     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    shader->Enable();
+    shader.Enable();
     glBindVertexArray(vao);
 
     // bind texture
     glActiveTexture(GL_TEXTURE0);
-    texture->Bind();
+    texture.Bind();
 
     // Set Projection Matrix
     glm::mat4 projectionMatrix = camera.GetCameraMatrix();
-    shader->SetUniformMat4("uProjection", projectionMatrix);
+    shader.SetUniformMat4("uProjection", projectionMatrix);
 
     // Draw elements
     glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(indices[0]), GL_UNSIGNED_INT, 0);
     
-    texture->unBind();
+    texture.unBind();
     glBindVertexArray(0);
-    shader->Disable();
+    shader.Disable();
 
     SDL_GL_SwapWindow(window.GetWindow().get());
   }

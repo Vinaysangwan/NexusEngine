@@ -5,8 +5,15 @@
 
 namespace NEXUS_RENDERING
 {
+  Shader::Shader()
+    : Shader(0, "", "")
+  {
+  }
+  
   Shader::Shader(GLuint programID, const std::string &vertFilePath, const std::string &fragFilePath)
-    : _ProgramID(programID), vertFilePath(vertFilePath), fragFilePath(fragFilePath)
+    : _ProgramID(programID),
+      vertFilePath(vertFilePath),
+      fragFilePath(fragFilePath)
   {
   }
 
